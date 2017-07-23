@@ -1,0 +1,58 @@
+<VirtualHost *:<%= @params[:server_port] || node['apache']['listen_ports'].first %>>
+  ServerName <%= @params[:server_name] %>
+  <% if @params[:server_aliases] -%>
+  ServerAlias <%= @params[:server_aliases].join " " %>
+  <% end -%>
+
+  ErrorLog <%= node['apache']['log_dir'] %>/<%= @params[:name] %>-error.log
+  CustomLog <%= node['apache']['log_dir'] %>/<%= @params[:name] %>-access.log combined
+
+  Redirect 301 / https://<%= @params[:server_name] %>/
+</VirtualHost>
+
+<VirtualHost *:443>
+  SSLEngine on
+  SSLCertificateFile "/etc/apache2/ssl/wifi.rax.mbs3.org.crt"
+  SSLCertificateKeyFile "/etc/apache2/ssl/wifi.rax.mbs3.org.key"
+
+  ServerName <%= @params[:server_name] %>
+
+  ErrorLog <%= node['apache']['log_dir'] %>/<%= @params[:name] %>-error.log
+  CustomLog <%= node['apache']['log_dir'] %>/<%= @params[:name] %>-access.log combined
+
+  DocumentRoot <%= @params[:docroot] %>
+
+  <Directory <%= @params[:docroot] %>>
+    Options <%= [@params[:directory_options] || "FollowSymLinks" ].flatten.join " " %>
+    AllowOverride <%= [@params[:allow_override] || "None" ].flatten.join " " %>
+    Require all granted
+  </Directory>
+
+  <Directory />
+    Options FollowSymLinks
+    AllowOverride None
+  </Directory>
+
+  # HSTS (mod_headers is required) (15768000 seconds = 6 months)
+  # Header always set Strict-Transport-Security "max-age=15768000"
+  Header unset Referer
+  RequestHeader unset Referer
+  # RequestHeader set Origin https://wifi.rax.mbs3.org:8443
+
+  # Encoded slashes need to be allowed
+  AllowEncodedSlashes     NoDecode
+
+  # Container uses a unique non-signed certificate
+  SSLProxyEngine On
+  SSLProxyVerify None
+  SSLProxyCheckPeerCN Off
+  SSLProxyCheckPeerName Off
+  SSLProxyCheckPeerExpire off
+
+  ProxyPass /.well-known !
+  ProxyPass "/wss/" "wss://127.0.0.1:8443/wss/"
+  ProxyPassReverse "/wss/" "wss://127.0.0.1:8443/wss/"
+  ProxyPass "/" "https://127.0.0.1:8443/"
+  ProxyPassReverse "/" "https://127.0.0.1:8443/"
+  ProxyPreserveHost On
+</VirtualHost>

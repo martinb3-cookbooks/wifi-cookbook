@@ -16,3 +16,4 @@ gem 'berkshelf'
 
 gem 'test-kitchen'
 gem 'kitchen-vagrant'
+gem 'chef', '12.19.36'
