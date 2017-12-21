@@ -5,11 +5,20 @@ ports = [80, 443, 8080, 8443, 8880, 8843, 3478]
 
 ports.each do |p|
   rule = {
-    name: "port_#{p}",
+    name: "port_#{p}_tdp",
     value: "-A FWR -p tcp -m tcp --dport #{p} -j ACCEPT"
   }
   node.set['iptables']['rules'] << rule if node['iptables']['rules'].select { |r| r[:name] == rule[:name] }.empty?
 end
+
+ports.each do |p|
+  rule = {
+    name: "port_#{p}_udp",
+    value: "-A FWR -p udp -m udp --dport #{p} -j ACCEPT"
+  }
+  node.set['iptables']['rules'] << rule if node['iptables']['rules'].select { |r| r[:name] == rule[:name] }.empty?
+end
+
 
 port_10000 = {
   name: 'port_10000',
